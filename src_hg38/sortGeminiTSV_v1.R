@@ -9,6 +9,7 @@
 ## if impact == "missense_variant" & mis_z >= 3.09 & sigmaaf_missense_0001 < 0.005 & pmaxaf < 0.0005, priority socre += 2
 
 #When testing, switch comment lines below.
+## needs to use if (filePlaceholder) condition and/or file.size condition so that OGL NGS_calling/or vcf input only are used.
 
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -29,8 +30,9 @@ roh_file <- args[11]
 scramble_mei_file <- args[12]
 scramble_del_file <- args[13]
 config_file <- args[14]
-convading_file <- args[15]
-convading_LAF <- args[16]
+clinsv_file <- args[15]
+convading_file <- args[16]
+convading_LAF <- args[17]
 
 library(tidyverse)
 library(readxl)
@@ -315,6 +317,13 @@ if (scramble_del_file == "filePlaceholder") {
 #deleted sampleName, after FORMAT, add this back for production
 
 #manta_file "Z:/NextSeqAnalysis/test2/manta/manta.1197.annotated.tsv"
+##Add clinSV for genome, the position is "filePlaceholder" for other analysis type.
+if ( clinsv_file == "filePlaceholder") {
+  clinsv <- data.frame("sample" = sampleName, "note" = "clinSV not analyzed.")
+} else {
+  clinsv <- read_xlsx(clinsv_file, sheet = "clinSV", na = c("NA", "", "None", "NONE", "."))
+}
+
 gemini_filtered1 <- gemini_filtered %>% filter(priority_score >= 3) %>% select(-maxpriorityscore) %>% 
   arrange(desc(eyeGene), desc(priority_score))
   
@@ -374,8 +383,10 @@ config <- read_tsv(config_file, col_names = FALSE, na = c("NA", ""), col_types =
 summaryInfo <- data.frame("sample" = sampleName, "PatientDxPhenotype" = NA, "DxOutcome"= NA, "variant" = NA, "reviewer" = NA, "date" = NA) %>% 
   add_row("sample" = sampleName, "PatientDxPhenotype" = NA, "DxOutcome"= NA, "variant" = NA, "reviewer" = NA, "date" = NA)
 
+#scramble_del_file == "filePlaceholder", genome as scramble_del is not run for genome.
+#is.an(convading_file), exome 
 if (scramble_del_file == "filePlaceholder") {
-  openxlsx::write.xlsx(list("AR" = ar, "AD" = ad, "XR" = xR, "XD" = xD, "ACMG" = acmg, "all" = gemini_filtered1, "rareRef" = gemini_ref_var_rearrangeCol, "manta" = manta_sort, "scramble_mei" = scramble_mei, "roh" = roh, "config" = config, "summary" = summaryInfo), file = gemini_xlsx_file, firstRow = TRUE, firstCol = TRUE, keepNA = FALSE)
+  openxlsx::write.xlsx(list("AR" = ar, "AD" = ad, "XR" = xR, "XD" = xD, "ACMG" = acmg, "all" = gemini_filtered1, "rareRef" = gemini_ref_var_rearrangeCol, "clinSV" = clinsv, "manta" = manta_sort, "scramble_mei" = scramble_mei, "roh" = roh, "config" = config, "summary" = summaryInfo), file = gemini_xlsx_file, firstRow = TRUE, firstCol = TRUE, keepNA = FALSE)
 } else if (is.na(convading_file)) {
   openxlsx::write.xlsx(list("AR" = ar, "AD" = ad, "XR" = xR, "XD" = xD, "ACMG" = acmg, "all" = gemini_filtered1, "rareRef" = gemini_ref_var_rearrangeCol, "manta" = manta_sort, "scramble_mei" = scramble_mei, "scramble_del" = scramble_del_sort, "roh" = roh, "config" = config, "summary" = summaryInfo), file = gemini_xlsx_file, firstRow = TRUE, firstCol = TRUE, keepNA = FALSE)
 } else {

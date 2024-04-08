@@ -10,6 +10,7 @@ library(tidyverse)
 variant_validator_file <- args[1]
 vcf_file <- args[2]
 
+#chrM??
 variant_validator <- read_tsv(variant_validator_file, col_names = TRUE, na = c("NA", "", "None", "NONE", ".", "FALSE", "False"), col_types = cols(.default = col_character())) %>%
   type_convert() %>%
   select(Input,GRCh38_CHR:GRCh38_ALT) %>% 
@@ -21,6 +22,7 @@ variant_validator <- read_tsv(variant_validator_file, col_names = TRUE, na = c("
   mutate(`#CHROM` = factor(`#CHROM`, levels = c("chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10",
                                                 "chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19",
                                                 "chr20","chr21","chr22","chrX","chrY"))) %>% 
-  arrange(`#CHROM`, POS)
+  arrange(`#CHROM`, POS) %>% 
+  mutate(QUAL = 50, FILTER = "PASS", INFO = ".", FORMAT = "GT:GQ:DP", S1 = "0/1:50:100")
 
 write_tsv(variant_validator, vcf_file, na=".")

@@ -12,13 +12,16 @@
 library(tidyverse)
 #library(vroom)
 
+##na can mess up with value comparison -- either adding is.na or replace_na, verify by filtering out
+##is.na(priority_score)
+
 args <- commandArgs(trailingOnly=TRUE)
-#When testing, use the line below.
-# setwd("Z:/genome/USUHS/prioritization/temp")
-# args <- c("for.ps.tsv", "squirls.csv",
-#           "pangolin.tsv", "crossmap.hg19.tsv",
+##When testing, use the line below.
+# setwd("W:/annotation/kp/temp")
+# args <- c("Axiom_PMDRAv2.na36.r2.a2__24chr.for.ps.tsv", "squirls.Axiom_PMDRAv2.na36.r2.a2__24chr.csv",
+#           "pangolin.Axiom_PMDRAv2.na36.r2.a2__24chr.tsv", "crossmap.hg19.Axiom_PMDRAv2.na36.r2.a2__24chr.tsv",
 #           "Z:/resources/gnomad/release-2.1.1/gnomad.v2.1.1.lof_metrics.by_gene.txt",
-#           "usuhs44__chr1:1-124478211.ps.tsv")
+#           "Axiom_PMDRAv2.na36.r2.a2__24chr.ps.tsv")
 
 psInput_file <- args[1]
 squirls_file <- args[2]
@@ -164,7 +167,8 @@ ps_df <-  left_join(ps_df_crossmap, squirls_pangolin_annotation, by=c('CHROM', '
            ifelse(is.na(hmc_score), 0, ifelse(hmc_score < 0.8, 0.5, 0)) +
            ifelse(is.na(gnomad_nc_constraint), 0, ifelse(gnomad_nc_constraint > 4 & pmaxaf < 0.01, 0.5, 0)) +
            ifelse(am_class == "likely_pathogenic", 0.5, 0)) %>% 
-  replace_na(list(clinvar_hgmd_score=0, insilico_score=0)) %>% 
+  replace_na(list(clinvar_hgmd_score=0, insilico_score=0, mis_z=0, SigmaAF_Missense_0001=0,
+                  spliceai_rank=0)) %>% 
   mutate(temp_dpsi_max_tissue = dpsi_max_tissue) %>% 
   mutate(temp_dpsi_zscore = dpsi_zscore) %>%
   mutate(temp_dbscsnv_ada_score = dbscSNV_ADA_SCORE) %>% 
@@ -202,6 +206,7 @@ ps_df <-  left_join(ps_df_crossmap, squirls_pangolin_annotation, by=c('CHROM', '
   select(CHROM, POS, REF, ALT, priority_score, clinvar_hgmd_score, splice_score, insilico_score, pmaxaf, truncating_vep, squirls_interpretation, squirls_maxscore, squirls_score, pangolin, grch37variant_id,
          'pLI','pNull','pRec','LOEUF','syn_z','mis_z','oe_lof_upper_bin','sum_lof_af_gnomad','max_lof_af_gnomad','proportion_pLoF_haplotypes') %>% 
   arrange(CHROM, POS)
+
 
 #pmaxaf cutoff increased to 0.005 from 0.0005; 4/14/2020
 #http://web.corral.tacc.utexas.edu/WGSAdownload/resources/dbNSFP/dbNSFP4.0b2c.readme.txt

@@ -984,18 +984,30 @@ rule merge_spliceai_vcf:
 		bcftools concat --threads {threads} -a --rm-dups none {input.vcf} -Oz -o /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz
 		tabix -f -p vcf /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz
 		TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
-		cp /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz /data/OGL/resources/spliceai/temp/$TIMESTAMP.spliceai500.newAnnotation.GRCh38.vcf.gz
-		cp /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz.tbi /data/OGL/resources/spliceai/temp/$TIMESTAMP.spliceai500.newAnnotation.GRCh38.vcf.gz.tbi
-		cp /data/OGL/resources/spliceai/spliceai500.depot.GRCh38.vcf.gz /data/OGL/resources/spliceai/backup/$TIMESTAMP.spliceai500.depot.GRCh38.vcf.gz
-		cp /data/OGL/resources/spliceai/spliceai500.depot.GRCh38.vcf.gz.tbi /data/OGL/resources/spliceai/backup/$TIMESTAMP.spliceai500.depot.GRCh38.vcf.gz.tbi
-		chgrp OGL /data/OGL/resources/spliceai/temp/$TIMESTAMP.spliceai500.newAnnotation.GRCh38.vcf.gz*
-		chgrp OGL /data/OGL/resources/spliceai/backup/$TIMESTAMP.spliceai500.depot.GRCh38.vcf.gz*
-		bcftools concat --threads {threads} -a --rm-dups none --no-version \
-			/data/OGL/resources/spliceai/spliceai500.depot.GRCh38.vcf.gz /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz \
-			-Oz -o /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz
-		tabix -f -p vcf /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz
-		cp /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz* /data/OGL/resources/spliceai
-		touch {output}
+		Depot="/data/OGL/resources/spliceai/spliceai500.depot.GRCh38.vcf.gz"
+		backupDepot="/data/OGL/resources/spliceai/backup/$TIMESTAMP.spliceai500.depot.GRCh38.vcf.gz"
+		newAnno="/data/OGL/resources/spliceai/temp/$TIMESTAMP.spliceai500.newAnnotation.GRCh38.vcf.gz"
+		if [[ `bcftools index -n /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz` -gt 0 ]]; then
+			cp /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz $newAnno
+			cp /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz.tbi $newAnno.tbi
+			cp $Depot $backupDepot
+			cp $Depot.tbi $backupDepot.tbi
+			bcftools concat --threads {threads} -a --rm-dups none --no-version \
+				$Depot /lscratch/$SLURM_JOB_ID/new.spliceai.vcf.gz \
+				-Oz -o /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz
+			tabix -f -p vcf /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz
+			cp /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz* /data/OGL/resources/spliceai
+			if [[ `bcftools index -n $Depot` -gt `bcftools index -n $backupDepot` ]]; then
+				rm $backupDepot $backupDepot.tbi $newAnno $newAnno.tbi
+				touch {output}
+			else
+				chgrp OGL /data/OGL/resources/spliceai/temp/$TIMESTAMP.spliceai500.newAnnotation.GRCh38.vcf.gz*
+				chgrp OGL /data/OGL/resources/spliceai/backup/$TIMESTAMP.spliceai500.depot.GRCh38.vcf.gz*
+				echo "## new SpliceAI depot file is not greater than backup, check what caused the problem by checking newAnno file etc, or rerun bcftools concat."
+			fi
+		else
+			echo "## SpliceAI did not annoate any variant, check whether spliceAI is needed. Shall you use vcfanno instead?"
+		fi
 		"""
 # 5/31/22: removed sort from merge_sample_vcf above. bcftools concat --threads {threads} {input.vcf} | bcftools sort -T /lscratch/$SLURM_JOB_ID/ -m 100G -O z -o {output.vcf}
 
@@ -1249,10 +1261,10 @@ if config['datatype'].upper() == "PANEL":
 			if [ {config[NGS_genotype_calling]} == OGL ]
 			then
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} filePlaceholder ../scramble_anno/{wildcards.sampleid}.scramble.xlsx ../scramble_anno/{wildcards.sampleid}.scramble.del.tsv {config[configuration_file]} ../CoNVaDING/CNV_hiSens/{wildcards.sampleid}.markDup.aligned.only.best.score.shortlist.txt gemini_xlsx/{wildcards.sampleid}.geneLAF.pdf
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} filePlaceholder ../scramble_anno/{wildcards.sampleid}.scramble.xlsx ../scramble_anno/{wildcards.sampleid}.scramble.del.tsv {config[configuration_file]} filePlaceholder ../CoNVaDING/CNV_hiSens/{wildcards.sampleid}.markDup.aligned.only.best.score.shortlist.txt gemini_xlsx/{wildcards.sampleid}.geneLAF.pdf
 			else
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]} filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]} filePlaceholder filePlaceholder
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]} filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]} filePlaceholder filePlaceholder filePlaceholder
 			fi
 			"""
 elif config['datatype'].upper() in ["EXOME", "WES"]:
@@ -1270,10 +1282,10 @@ elif config['datatype'].upper() in ["EXOME", "WES"]:
 			if [ {config[NGS_genotype_calling]} == "OGL" ]
 			then
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} ../AutoMap/{wildcards.sampleid}/{wildcards.sampleid}.HomRegions.annot.tsv ../scramble_anno/{wildcards.sampleid}.scramble.xlsx ../scramble_anno/{wildcards.sampleid}.scramble.del.tsv {config[configuration_file]}
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} ../AutoMap/{wildcards.sampleid}/{wildcards.sampleid}.HomRegions.annot.tsv ../scramble_anno/{wildcards.sampleid}.scramble.xlsx ../scramble_anno/{wildcards.sampleid}.scramble.del.tsv {config[configuration_file]} filePlaceholder
 			else
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]}  filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]}
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]}  filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]} filePlaceholder
 			fi
 			"""
 else:
@@ -1292,10 +1304,10 @@ else:
 			if [ {config[NGS_genotype_calling]} == "OGL" ]
 			then
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} ../AutoMap/{wildcards.sampleid}/{wildcards.sampleid}.HomRegions.annot.tsv ../scramble_anno/{wildcards.sampleid}.scramble.xlsx filePlaceholder {config[configuration_file]}
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} ../AutoMap/{wildcards.sampleid}/{wildcards.sampleid}.HomRegions.annot.tsv ../scramble_anno/{wildcards.sampleid}.scramble.xlsx filePlaceholder {config[configuration_file]} ../clinSV/{wildcards.sampleid} RARE_PASS_GENE.eG.filtered.xlsx
 			else
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]} filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]}
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]} filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]} filePlaceholder
 			fi
 			"""
 # [] or [[]] are both fine in biowulf2, the space is more important.
