@@ -179,6 +179,7 @@ if config['datatype'].upper() in ["PANEL"]:
 	localrules: spliceai_depot
 	localrules: spliceai_edit
 	localrules: vcfanno_annotate
+	localrules: peddy_QC
 elif config['datatype'].upper() in ["EXOME", "WES"]:
 	localrules: squirls
 	localrules: n_split_vcf
@@ -1260,8 +1261,13 @@ if config['datatype'].upper() == "PANEL":
 			if [[ $(module list 2>&1 | grep "R/" | wc -l) < 1 ]]; then module load {config[R_version]}; fi
 			if [ {config[NGS_genotype_calling]} == OGL ]
 			then
+				if [[ -e ../CoNVaDING/CNV_hiSens/{wildcards.sampleid}.markDup.aligned.only.best.score.shortlist.txt ]]; then
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
 					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} filePlaceholder ../scramble_anno/{wildcards.sampleid}.scramble.xlsx ../scramble_anno/{wildcards.sampleid}.scramble.del.tsv {config[configuration_file]} filePlaceholder ../CoNVaDING/CNV_hiSens/{wildcards.sampleid}.markDup.aligned.only.best.score.shortlist.txt gemini_xlsx/{wildcards.sampleid}.geneLAF.pdf
+				else
+				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} filePlaceholder ../scramble_anno/{wildcards.sampleid}.scramble.xlsx ../scramble_anno/{wildcards.sampleid}.scramble.del.tsv {config[configuration_file]} filePlaceholder ../CoNVaDING/CNV_hiSens/{wildcards.sampleid}.markDup.best.score.shortlist.txt gemini_xlsx/{wildcards.sampleid}.geneLAF.pdf
+				fi
 			else
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
 					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]} filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]} filePlaceholder filePlaceholder filePlaceholder
