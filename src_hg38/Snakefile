@@ -999,6 +999,8 @@ rule merge_spliceai_vcf:
 			tabix -f -p vcf /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz
 			cp /lscratch/$SLURM_JOB_ID/spliceai500.depot.GRCh38.vcf.gz* /data/OGL/resources/spliceai
 			if [[ `bcftools index -n $Depot` -gt `bcftools index -n $backupDepot` ]]; then
+				echo "####variant no. in original depot file: `bcftools index -n $backupDepot` ####"
+				echo "####variant no. in new depot file: `bcftools index -n $Depot`            ####"
 				rm $backupDepot $backupDepot.tbi $newAnno $newAnno.tbi
 				touch {output}
 			else
@@ -1310,7 +1312,7 @@ else:
 			if [ {config[NGS_genotype_calling]} == "OGL" ]
 			then
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
-					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} ../AutoMap/{wildcards.sampleid}/{wildcards.sampleid}.HomRegions.annot.tsv ../scramble_anno/{wildcards.sampleid}.scramble.xlsx filePlaceholder {config[configuration_file]} ../clinSV/{wildcards.sampleid} RARE_PASS_GENE.eG.filtered.xlsx
+					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} ../manta/manta.{wildcards.sampleid}.annotated.tsv {config[manta_freq]} ../AutoMap/{wildcards.sampleid}/{wildcards.sampleid}.HomRegions.annot.tsv ../scramble_anno/{wildcards.sampleid}.scramble.xlsx filePlaceholder {config[configuration_file]} ../clinSV/{wildcards.sampleid}.clinSV.RARE_PASS_GENE.eG.filtered.xlsx
 			else
 				Rscript /home/$USER/git/variant_prioritization/src_hg38/sortGeminiTSV_v1.R \
 					{input.tsv} {input.ref_tsv} {config[OGL_Dx_research_genes]} {output.rearranged_tsv} {output.filtered_tsv} {wildcards.sampleid} {output.filtered_xlsx} {config[aaf_change]} filePlaceholder {config[manta_freq]} filePlaceholder filePlaceholder filePlaceholder {config[configuration_file]} filePlaceholder
