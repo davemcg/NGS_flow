@@ -6,7 +6,7 @@
 		"mem" : "8g",
 		"output"  : "00log/{rule}_{wildcards}.out",
 		"error" : "00log/{rule}_{wildcards}.err",
-		"extra" : "--gres=lscratch:50"
+		"extra" : "--gres=lscratch:100"
 	},
 	"query_gemini_individual" :
 	{
@@ -19,15 +19,7 @@
 		"mem" : "16g",
 		"extra" : "--gres=lscratch:150"
 	},
-	"n_split_vcf" :
-	{
-		"extra" : "--gres=lscratch:50"
-	},
-	"vt_bgzip_and_tabix_vcf" :
-	{
-		"extra" : "--gres=lscratch:50"
-	},
-  "spliceai_wrapper" :
+	"spliceai_wrapper" :
   {
     "partition" : "gpu",
     "extra" : "--gres=gpu:p100:1",
@@ -37,20 +29,28 @@
 	"spliceai" :
 	{
 		"partition" : "gpu",
-		"extra" : "--constraint='[gpuv100|gpup100|gpuv100x]' --gres=gpu:1,lscratch:100 ",
-		"mem" : "16g",
+		"extra" : "--constraint='[gpuv100|gpup100|gpuv100x|gpua100]' --gres=gpu:1,lscratch:100 ",
+		"mem" : "8g",
 		"time" : "8:00:00",
 		"threads" : "8"
+	},
+	"pangolin":
+	{
+		"partition" : "gpu",
+		"extra" : "--constraint='[gpuv100|gpup100|gpuv100x|gpua100]' --gres=gpu:1,lscratch:100 ",
+		"mem" : "16g",
+		"time" : "12:00:00",
+		"threads" : "14"
 	},
 	"VEP_annotate" :
 	{
 		"partition" : "norm",
-		"time" : "24:00:00"
+		"time" : "12:00:00"
 	},
 	"annovar_intervar" :
 	{
 		"partition" : "norm",
-		"time" : "24:00:00",
+		"time" : "12:00:00",
 		"mem" : "16g"
 	},
 	"spliceai_intervar_edit" :
@@ -62,13 +62,17 @@
 		"threads" : "4",
 		"mem" : "16g"
 	},
+	"crossmap" :
+	{
+		"time" : "2:0:0",
+		"mem" : "32g"
+	},
 	"priority_scores" :
 	{
-		"mem" : "32g"
+		"mem" : "16g"
 	},
 	"vcfanno2" :
 	{
-		"threads" : "4",
 		"mem" : "16g"
 	},
 	"merge_vcf" :
